@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2E5A36">
+    <title>ECOGREEN - Sistema de Rendición Móvil</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <script>window.global = window;</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        :root { --verde-ecogreen: #2E5A36; --verde-pastel: #E2EFDA; }
+        body { background-color: #f4f6f4; font-family: 'Segoe UI', Calibri, sans-serif; }
+        .navbar { background-color: var(--verde-ecogreen); }
+        .card { border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.06); border-radius: 12px; }
+        .card-header { background-color: var(--verde-pastel); color: #2E5A36; font-weight: bold; }
+        .btn-success { background-color: var(--verde-ecogreen); border: none; }
+        .btn-success:hover { background-color: #1e3d24; }
+        .metric-box { background: white; padding: 12px; border-radius: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        .adjunto-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark mb-3">
+    <div class="container-fluid justify-content-center">
+        <span class="navbar-brand mb-0 h1 fw-bold">📊 CONTROL DE BALANCES - ECOGREEN</span>
+    </div>
+</nav>
+
+<div class="container mb-5">
+    <div class="row g-2 mb-3 text-center">
+        <div class="col-4"><div class="metric-box border-top border-success border-4"><small class="text-muted d-block">Ingresos</small><b class="text-success" id="lbl-ingresos">Bs. 0.00</b></div></div>
+        <div class="col-4"><div class="metric-box border-top border-danger border-4"><small class="text-muted d-block">Salidas</small><b class="text-danger" id="lbl-salidas">Bs. 0.00</b></div></div>
+        <div class="col-4"><div class="metric-box border-top border-primary border-4"><small class="text-muted d-block">Saldo</small><b class="text-primary" id="lbl-saldo">Bs. 0.00</b></div></div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">📅 Datos Generales de la Rendición</div>
+        <div class="card-body py-2 row g-2">
+            <div class="col-4">
+                <label class="form-label small mb-0">N° Balance</label>
+                <input type="number" id="bal-numero" class="form-control form-control-sm" value="7">
+            </div>
+            <div class="col-8">
+                <label class="form-label small mb-0">Responsable del Control</label>
+                <input type="text" id="bal-responsable" class="form-control form-control-sm" value="GUSTAVO LUNA PACHECO">
+            </div>
+            <div class="col-6">
+                <label class="form-label small mb-0">Fecha Inicio Período</label>
+                <input type="date" id="bal-f-inicio" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+                <label class="form-label small mb-0">Fecha Fin Período</label>
+                <input type="date" id="bal-f-fin" class="form-control form-control-sm">
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- INGRESOS -->
+        <div class="col-12 col-md-6">
+            <div class="card border-start border-success border-4">
+                <div class="card-header bg-success text-white fw-bold">💰 Registro de Ingresos</div>
+                <div class="card-body row g-2">
+                    <div class="col-6"><label class="form-label small mb-0">Fecha</label><input type="date" id="ing-fecha" class="form-control form-control-sm"></div>
+                    <div class="col-6"><label class="form-label small mb-0">Monto (Bs.)</label><input type="number" id="ing-monto" class="form-control form-control-sm" placeholder="0.00" step="0.01"></div>
+                    <div class="col-12"><label class="form-label small mb-0">Entregado Por / Origen</label><input type="text" id="ing-quien" class="form-control form-control-sm" value="ING. DANIELA"></div>
+                    <div class="col-12">
+                        <label class="form-label small mb-0">Tipo Respaldo Ingreso</label>
+                        <select id="ing-respaldo" class="form-select form-select-sm">
+                            <option value="MOVIMIENTO">DESCRIPCIÓN DE MOVIMIENTO</option>
+                            <option value="RECIBO">RECIBO</option>
+                        </select>
+                    </div>
+                    <div class="col-12"><label class="form-label small mb-0">Descripción del Ingreso</label><input type="text" id="ing-obs" class="form-control form-control-sm" placeholder="Ej: FONDOS RENDICIÓN"></div>
+                    <div class="col-12 mt-2"><button onclick="agregarIngreso()" class="btn btn-success btn-sm w-100 fw-bold">Guardar Ingreso</button></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SALIDAS -->
+        <div class="col-12 col-md-6">
+            <div class="card border-start border-danger border-4">
+                <div class="card-header bg-danger text-white fw-bold">📉 Registro de Salidas</div>
+                <div class="card-body row g-2">
+                    <div class="col-6"><label class="form-label small mb-0">Fecha</label><input type="date" id="sal-fecha" class="form-control form-control-sm"></div>
+                    <div class="col-6"><label class="form-label small mb-0">Monto (Bs.)</label><input type="number" id="sal-monto" class="form-control form-control-sm" placeholder="0.00" step="0.01"></div>
+                    <div class="col-12"><label class="form-label small mb-0">Razón Social</label><input type="text" id="sal-razon" class="form-control form-control-sm"></div>
+                    <div class="col-12"><label class="form-label small mb-0">Servicio o Compra</label><input type="text" id="sal-servicio" class="form-control form-control-sm"></div>
+                    <div class="col-12"><label class="form-label small mb-0">Aclaraciones</label><input type="text" id="sal-aclara" class="form-control form-control-sm"></div>
+
+                    <div class="col-12">
+                        <label class="form-label small mb-0">Tipo Respaldo (puede seleccionar varios)</label>
+                        <div class="border rounded p-2 d-flex flex-wrap gap-3">
+                            <div class="form-check m-0"><input class="form-check-input sal-respaldo-check" type="checkbox" value="DESCRIPCIÓN DE MOVIMIENTO" id="resp-descmov"><label class="form-check-label small" for="resp-descmov">DESC. MOVIMIENTO</label></div>
+                            <div class="form-check m-0"><input class="form-check-input sal-respaldo-check" type="checkbox" value="FACTURA" id="resp-factura"><label class="form-check-label small" for="resp-factura">FACTURA</label></div>
+                            <div class="form-check m-0"><input class="form-check-input sal-respaldo-check" type="checkbox" value="RECIBO EMPRESA" id="resp-recibo"><label class="form-check-label small" for="resp-recibo">RECIBO EMPRESA</label></div>
+                            <div class="form-check m-0"><input class="form-check-input sal-respaldo-check" type="checkbox" value="SCREEN" id="resp-screen"><label class="form-check-label small" for="resp-screen">SCREEN</label></div>
+                            <div class="form-check m-0"><input class="form-check-input sal-respaldo-check" type="checkbox" value="OTRO RESPALDO" id="resp-otro"><label class="form-check-label small" for="resp-otro">OTRO RESPALDO</label></div>
+                        </div>
+                    </div>
+
+                    <!-- ADJUNTAR FOTO O PDF -->
+                    <div class="col-12">
+                        <label class="form-label small mb-0">📎 Adjuntar Foto o PDF de Respaldo</label>
+                        <div class="d-flex gap-2">
+                            <input type="file" id="sal-archivo" class="form-control form-control-sm" accept="image/*,application/pdf">
+                            <button type="button" onclick="agregarAdjunto()" class="btn btn-outline-success btn-sm fw-bold">➕</button>
+                        </div>
+                        <small class="text-muted">📷 Cámara o galería. Repite para agregar más de uno.</small>
+                        <div id="sal-preview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+
+                    <div class="col-6"><label class="form-label small mb-0">PROY/ADM</label><input type="text" id="sal-proyecto" class="form-control form-control-sm" value="ECOGREEN"></div>
+                    <div class="col-6">
+                        <label class="form-label small mb-0">Categoría / Asignación</label>
+                        <select id="sal-categoria" class="form-select form-select-sm">
+                            <option value="LOGÍSTICA">LOGÍSTICA</option>
+                            <option value="JORNALES">JORNALES</option>
+                            <option value="CONTRATISTAS">CONTRATISTAS</option>
+                            <option value="PROFESIONALES">PROFESIONALES</option>
+                            <option value="MATERIALES DE CONSTRUCCIÓN / ESCRITORIO">MATERIALES CONST./ESCRITORIO</option>
+                            <option value="CAJAS CHICAS">CAJAS CHICAS</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 mt-2"><button onclick="agregarSalida()" class="btn btn-danger btn-sm w-100 fw-bold">Guardar Gasto</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="my-4">
+        <button onclick="generarReporteExcelOficial()" class="btn btn-primary w-100 py-3 fw-bold shadow-lg fs-5">📥 EXPORTAR RENDICIÓN OFICIAL (.XLSX)</button>
+    </div>
+    <button onclick="borrarTodo()" class="btn btn-outline-secondary w-100 mt-2" style="font-size:11px;">Restablecer datos de la Aplicación</button>
+</div>
+
+<script>
+// ─── PDF.js worker ───────────────────────────────────────────────────────────
+if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ─── Fechas iniciales ────────────────────────────────────────────────────────
+let hoy = new Date().toISOString().substring(0,10);
+['bal-f-inicio','bal-f-fin','ing-fecha','sal-fecha'].forEach(id => document.getElementById(id).value = hoy);
+
+// ─── Datos en localStorage ───────────────────────────────────────────────────
+let listIngresos = JSON.parse(localStorage.getItem('ecogreen_inc')) || [];
+let listSalidas  = JSON.parse(localStorage.getItem('ecogreen_out')) || [];
+let adjuntosTemp = [];   // adjuntos del gasto en curso (aún sin guardar)
+
+// ─── IndexedDB: guardar fotos/PDF (binarios grandes fuera del localStorage) ──
+const DB_NAME = 'ecogreen_db', DB_VER = 1, STORE = 'adjuntos';
+
+function abrirDB() {
+    return new Promise((ok, err) => {
+        let req = indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded = e => {
+            if (!e.target.result.objectStoreNames.contains(STORE))
+                e.target.result.createObjectStore(STORE, { keyPath: 'id' });
+        };
+        req.onsuccess = e => ok(e.target.result);
+        req.onerror   = e => err(e.target.error);
+    });
+}
+async function guardarAdjuntosDB(id, adjuntos) {
+    let db = await abrirDB();
+    return new Promise((ok, err) => {
+        let tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put({ id, adjuntos });
+        tx.oncomplete = ok; tx.onerror = e => err(e.target.error);
+    });
+}
+async function obtenerAdjuntosDB(id) {
+    let db = await abrirDB();
+    return new Promise((ok, err) => {
+        let req = db.transaction(STORE,'readonly').objectStore(STORE).get(id);
+        req.onsuccess = () => ok(req.result ? req.result.adjuntos : []);
+        req.onerror   = e => err(e.target.error);
+    });
+}
+async function limpiarAdjuntosDB() {
+    let db = await abrirDB();
+    return new Promise((ok, err) => {
+        let tx = db.transaction(STORE,'readwrite');
+        tx.objectStore(STORE).clear();
+        tx.oncomplete = ok; tx.onerror = e => err(e.target.error);
+    });
+}
+
+// ─── Comprimir imagen ────────────────────────────────────────────────────────
+function comprimirImagen(file) {
+    return new Promise((ok, err) => {
+        let reader = new FileReader();
+        reader.onload = e => {
+            let img = new Image();
+            img.onload = () => {
+                let scale = Math.min(1, 1400 / img.width);
+                let canvas = document.createElement('canvas');
+                canvas.width  = img.width  * scale;
+                canvas.height = img.height * scale;
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                ok(canvas.toDataURL('image/jpeg', 0.82));
+            };
+            img.onerror = err;
+            img.src = e.target.result;
+        };
+        reader.onerror = err;
+        reader.readAsDataURL(file);
+    });
+}
+
+// ─── Convertir primera página de PDF a imagen ───────────────────────────────
+async function pdfToImg(file) {
+    let buf  = await file.arrayBuffer();
+    let pdf  = await pdfjsLib.getDocument({ data: buf }).promise;
+    let page = await pdf.getPage(1);
+    let vp   = page.getViewport({ scale: 1.8 });
+    let canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+// ─── Adjuntar foto / PDF ─────────────────────────────────────────────────────
+async function agregarAdjunto() {
+    let input = document.getElementById('sal-archivo');
+    let file  = input.files[0];
+    if (!file) return alert('Selecciona una foto o PDF primero');
+    try {
+        let dataUrl = file.type === 'application/pdf'
+            ? await pdfToImg(file)
+            : await comprimirImagen(file);
+        adjuntosTemp.push({ nombre: file.name, dataUrl });
+        renderPreviews();
+        input.value = '';
+    } catch(e) { alert('❌ No se pudo procesar el archivo: ' + e.message); }
+}
+
+function renderPreviews() {
+    let cont = document.getElementById('sal-preview');
+    cont.innerHTML = '';
+    adjuntosTemp.forEach((adj, i) => {
+        let d = document.createElement('div');
+        d.className = 'position-relative';
+        d.style.width = '60px';
+        d.innerHTML = `<img src="${adj.dataUrl}" class="adjunto-thumb">
+            <button type="button" onclick="quitarAdj(${i})"
+                class="btn btn-danger btn-sm position-absolute top-0 end-0 p-0"
+                style="width:18px;height:18px;font-size:10px;line-height:1;">✕</button>`;
+        cont.appendChild(d);
+    });
+}
+
+function quitarAdj(i) { adjuntosTemp.splice(i,1); renderPreviews(); }
+
+// ─── Totales ─────────────────────────────────────────────────────────────────
+function calcularYMostrar() {
+    let tI = listIngresos.reduce((a,o)=>a+o.monto,0);
+    let tS = listSalidas.reduce((a,o)=>a+o.monto,0);
+    document.getElementById('lbl-ingresos').innerText = `Bs. ${tI.toFixed(2)}`;
+    document.getElementById('lbl-salidas').innerText  = `Bs. ${tS.toFixed(2)}`;
+    document.getElementById('lbl-saldo').innerText    = `Bs. ${(tI-tS).toFixed(2)}`;
+}
+
+// ─── Guardar ingreso ─────────────────────────────────────────────────────────
+function agregarIngreso() {
+    let m = parseFloat(document.getElementById('ing-monto').value);
+    if (!m || m<=0) return alert('Monto no válido');
+    listIngresos.push({
+        fecha: document.getElementById('ing-fecha').value,
+        monto: m,
+        quien: document.getElementById('ing-quien').value.toUpperCase(),
+        resp:  document.getElementById('ing-respaldo').value,
+        obs:   document.getElementById('ing-obs').value.toUpperCase()
+    });
+    localStorage.setItem('ecogreen_inc', JSON.stringify(listIngresos));
+    alert('✅ Ingreso guardado');
+    document.getElementById('ing-monto').value = '';
+    document.getElementById('ing-obs').value   = '';
+    calcularYMostrar();
+}
+
+// ─── Guardar salida ───────────────────────────────────────────────────────────
+async function agregarSalida() {
+    let m = parseFloat(document.getElementById('sal-monto').value);
+    if (!m || m<=0) return alert('Monto no válido');
+    let respaldos = Array.from(document.querySelectorAll('.sal-respaldo-check:checked')).map(c=>c.value);
+    if (!respaldos.length) return alert('Seleccione al menos un Tipo de Respaldo');
+
+    let id = 'sal_' + Date.now() + '_' + Math.random().toString(36).substring(2,6);
+    listSalidas.push({
+        id,
+        fecha:     document.getElementById('sal-fecha').value,
+        monto:     m,
+        razon:     document.getElementById('sal-razon').value   || 'CAJA CHICA',
+        servicio:  document.getElementById('sal-servicio').value,
+        aclara:    document.getElementById('sal-aclara').value,
+        respaldo:  respaldos,
+        proyecto:  document.getElementById('sal-proyecto').value,
+        categoria: document.getElementById('sal-categoria').value
+    });
+
+    if (adjuntosTemp.length) {
+        try { await guardarAdjuntosDB(id, adjuntosTemp); }
+        catch(e) { alert('⚠ Gasto guardado, pero los adjuntos fallaron: ' + e.message); }
+    }
+
+    localStorage.setItem('ecogreen_out', JSON.stringify(listSalidas));
+    alert('✅ Salida guardada' + (adjuntosTemp.length ? ` con ${adjuntosTemp.length} adjunto(s)` : ''));
+    ['sal-monto','sal-servicio','sal-aclara','sal-razon'].forEach(id => document.getElementById(id).value='');
+    document.querySelectorAll('.sal-respaldo-check').forEach(c=>c.checked=false);
+    adjuntosTemp = []; renderPreviews(); calcularYMostrar();
+}
+
+// ─── Formato de fecha Bolivia ─────────────────────────────────────────────────
+function fBolivia(f) {
+    if (!f) return '';
+    let p = f.split('-'); return `${+p[2]}/${+p[1]}/${p[0]}`;
+}
+
+// ─── Dimensiones de imagen (para posicionar en Excel) ────────────────────────
+function imgDims(dataUrl) {
+    return new Promise(ok => {
+        let img = new Image();
+        img.onload = () => ok({ w: img.width, h: img.height });
+        img.onerror = () => ok({ w: 600, h: 800 });
+        img.src = dataUrl;
+    });
+}
+
+// ─── EXPORTAR EXCEL ───────────────────────────────────────────────────────────
+async function generarReporteExcelOficial() {
+    try {
+        const wb = new ExcelJS.Workbook();
+        let numB  = document.getElementById('bal-numero').value;
+        let respB = document.getElementById('bal-responsable').value.toUpperCase();
+        let pIni  = fBolivia(document.getElementById('bal-f-inicio').value);
+        let pFin  = fBolivia(document.getElementById('bal-f-fin').value);
+        let periodo = `DEL ${pIni} AL ${pFin}`;
+
+        const C = {
+            verdeTit:   "FFD2EBD4", celeste: "FFD9E1F2", amarillo: "FFFFF2CC",
+            verdeAgua:  "FFCCFFCC", azulSaldo: "FFB4C6E7", gris: "FFEAEAEA",
+            naranja:    "FFFCE4D6"
+        };
+        const fT  = { name:"Calibri", size:11, bold:true };
+        const fSC = { name:"Calibri", size:9,  bold:true };
+        const fD  = { name:"Calibri", size:9 };
+        const fTot= { name:"Calibri", size:9,  bold:true };
+
+        const bD = { top:{style:"thin",color:{argb:"FF000000"}}, bottom:{style:"thin",color:{argb:"FF000000"}},
+                     left:{style:"thin",color:{argb:"FF000000"}}, right:{style:"thin",color:{argb:"FF000000"}} };
+        const bM = { top:{style:"medium",color:{argb:"FF000000"}}, bottom:{style:"medium",color:{argb:"FF000000"}},
+                     left:{style:"medium",color:{argb:"FF000000"}}, right:{style:"medium",color:{argb:"FF000000"}} };
+        const aC = { horizontal:"center", vertical:"middle", wrapText:true };
+        const aV = { horizontal:"center", vertical:"middle", wrapText:true, textRotation:90 };
+
+        const cfgH = ws => {
+            ws.pageSetup = { paperSize:1, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0,
+                margins:{left:0.5,right:0.5,top:0.75,bottom:0.75,header:0.3,footer:0.3} };
+            ws.headerFooter = {
+                oddHeader:`&L&B&9ECOGREEN&C&9RENDICIÓN DE CUENTAS&R&9Fecha: &D`,
+                oddFooter:`&L&9Responsable: ${respB}&R&9Página &P de &N`
+            };
+        };
+        const cfgV = ws => {
+            ws.pageSetup = { paperSize:1, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1,
+                margins:{left:0.5,right:0.5,top:0.5,bottom:0.5,header:0.3,footer:0.3} };
+            ws.headerFooter = {
+                oddHeader:`&L&B&9ECOGREEN&C&9RESPALDO DE GASTO&R&9Fecha: &D`,
+                oddFooter:`&L&9Responsable: ${respB}&R&9Página &P de &N`
+            };
+        };
+
+        // ── RESUMEN ──────────────────────────────────────────────────────────
+        const wR = wb.addWorksheet("RESUMEN", {views:[{showGridLines:true}]});
+        cfgH(wR);
+        ['A','B','C'].forEach(c => wR.getColumn(c).width = 4);
+        wR.getColumn('D').width=8; wR.getColumn('E').width=45; wR.getColumn('F').width=15;
+        wR.getColumn('G').width=20; wR.getColumn('H').width=16; wR.getColumn('I').width=22;
+
+        wR.mergeCells("D2:I2"); wR.getCell("D2").value = `RESUMEN BALANCE ECONÓMICO NRO.${numB} - ${respB}`;
+        wR.mergeCells("D3:I3"); wR.getCell("D3").value = periodo;
+        for(let c=4;c<=9;c++){
+            wR.getCell(2,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:C.verdeTit}};
+            wR.getCell(2,c).font=fT; wR.getCell(2,c).alignment=aC; wR.getCell(2,c).border=bM;
+            wR.getCell(3,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:C.amarillo}};
+            wR.getCell(3,c).font=fT; wR.getCell(3,c).alignment=aC; wR.getCell(3,c).border=bM;
+        }
+
+        wR.mergeCells("D5:I5"); wR.getCell("D5").value=`INGRESOS - ${respB}`;
+        wR.getCell("D5").font=fT; wR.getCell("D5").fill={type:'pattern',pattern:'solid',fgColor:{argb:C.verdeAgua}};
+        wR.getCell("D5").alignment=aC;
+
+        wR.mergeCells("D6:D7"); wR.getCell("D6").value="NRO.";
+        wR.mergeCells("E6:E7"); wR.getCell("E6").value="DESCRIPCIÓN";
+        wR.mergeCells("F6:F7"); wR.getCell("F6").value="BALANCE";
+        wR.mergeCells("G6:G7"); wR.getCell("G6").value="FECHA";
+        wR.mergeCells("H6:I6"); wR.getCell("H6").value=`INGRESOS - ${respB}`;
+        wR.getCell("H7").value="MONTO Bs."; wR.getCell("I7").value="TIPO DE INGRESO";
+
+        wR.getCell("D8").value=1;
+        wR.getCell("E8").value=`INGRESOS DE BALANCE ECONÓMICO NRO.${numB} - ${respB}`;
+        wR.getCell("F8").value=`BALANCE ${numB}`; wR.getCell("G8").value=periodo;
+        wR.getCell("H8").value={formula:"INGRESOS!E5"}; wR.getCell("I8").value="EFECTIVO/TRANSFERENCIA";
+        wR.mergeCells("D9:G9"); wR.getCell("D9").value="TOTAL INGRESOS (A)";
+        wR.getCell("H9").value={formula:"SUM(H8)"};
+
+        wR.mergeCells("D11:I11"); wR.getCell("D11").value=`SALIDAS - ${respB}`;
+        wR.getCell("D11").font=fT; wR.getCell("D11").fill={type:'pattern',pattern:'solid',fgColor:{argb:C.amarillo}};
+        wR.getCell("D11").alignment=aC;
+
+        wR.mergeCells("D12:D13"); wR.getCell("D12").value="NRO.";
+        wR.mergeCells("E12:E13"); wR.getCell("E12").value="DESCRIPCIÓN";
+        wR.mergeCells("F12:F13"); wR.getCell("F12").value="BALANCE";
+        wR.mergeCells("G12:G13"); wR.getCell("G12").value="FECHA";
+        wR.mergeCells("H12:I12"); wR.getCell("H12").value=`SALIDAS - ${respB}`;
+        wR.getCell("H13").value="MONTO Bs."; wR.getCell("I13").value="TIPO DE SALIDA";
+
+        wR.getCell("D14").value=1;
+        wR.getCell("E14").value=`SALIDAS DE BALANCE ECONÓMICO NRO.${numB} - ${respB}`;
+        wR.getCell("F14").value=`BALANCE ${numB}`; wR.getCell("G14").value=periodo;
+        let filaSal = listSalidas.length+5;
+        wR.getCell("H14").value={formula:`SALIDAS!E${filaSal}`}; wR.getCell("I14").value="EFECTIVO/TRANSFERENCIA";
+        wR.mergeCells("D15:G15"); wR.getCell("D15").value="TOTAL SALIDAS (B)";
+        wR.getCell("H15").value={formula:"SUM(H14)"};
+
+        [6,7,8,9,12,13,14,15].forEach(r=>{
+            for(let c=4;c<=9;c++){
+                let cell=wR.getCell(r,c);
+                let cab=(r===6||r===7||r===12||r===13), tot=(r===9||r===15);
+                cell.font=cab?fSC:(tot?fTot:fD); cell.border=bD; cell.alignment=aC;
+                if(tot) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:C.gris}};
+                if(c===8&&!cab) cell.numFmt='#,##0.00';
+            }
+        });
+
+        wR.mergeCells("D19:H19"); wR.getCell("D19").value=`SALDO TOTAL (A-B) - ${respB}`;
+        wR.getCell("I19").value={formula:"H9-H15"};
+        for(let c=4;c<=9;c++){
+            let cell=wR.getCell(19,c);
+            cell.font=fTot; cell.border=bM;
+            cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:C.azulSaldo}};
+            cell.alignment={horizontal:c===4?"left":(c===9?"right":"center"),vertical:"middle"};
+            if(c===9) cell.numFmt='#,##0.00';
+        }
+        wR.mergeCells("F26:I26"); wR.getCell("F26").value=`ELABORADO POR: ${respB}`;
+        wR.getCell("F26").font=fSC; wR.getCell("F26").alignment=aC;
+
+        // ── INGRESOS ─────────────────────────────────────────────────────────
+        const wI = wb.addWorksheet("INGRESOS", {views:[{showGridLines:true}]});
+        cfgH(wI);
+        wI.mergeCells("A1:J1"); wI.getCell("A1").value=`RESUMEN BALANCE ECONÓMICO NRO.${numB} - ${respB}`;
+        wI.mergeCells("A2:J2"); wI.getCell("A2").value=periodo;
+        for(let c=1;c<=10;c++){
+            wI.getCell(1,c).font=fT; wI.getCell(1,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:C.celeste}};
+            wI.getCell(1,c).alignment=aC; wI.getCell(1,c).border=bD;
+            wI.getCell(2,c).font=fSC; wI.getCell(2,c).alignment=aC; wI.getCell(2,c).border=bD;
+        }
+        wI.getCell("A3").value="NRO."; wI.getCell("B3").value="RAZÓN SOCIAL";
+        wI.getCell("C3").value="SERVICIO O COMPRA / DESCRIPCIÓN"; wI.getCell("D3").value="ACLARACIONES";
+        wI.getCell("E3").value="MONTO"; wI.getCell("F3").value="FECHA";
+        wI.mergeCells("G3:H3"); wI.getCell("G3").value="RESPALDO";
+        wI.getCell("G4").value="DESCRIPCIÓN MOVIMIENTO"; wI.getCell("H4").value="RECIBO";
+        wI.getCell("I3").value="NRO. DE BALANCE"; wI.getCell("J3").value="ENTREGADO POR / ORIGEN";
+        ["A3:A4","B3:B4","C3:C4","D3:D4","E3:E4","F3:F4","I3:I4","J3:J4"].forEach(r=>wI.mergeCells(r));
+        for(let r=3;r<=4;r++) for(let c=1;c<=10;c++){
+            let cell=wI.getCell(r,c);
+            cell.font=fSC; cell.border=bD; cell.alignment=aC;
+            cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:(c===7||c===8)?C.amarillo:C.celeste}};
+        }
+        listIngresos.forEach((item,idx)=>{
+            let r=idx+5;
+            wI.getCell(r,1).value=idx+1; wI.getCell(r,2).value="";
+            wI.getCell(r,3).value=item.obs.toUpperCase(); wI.getCell(r,4).value="";
+            wI.getCell(r,5).value=item.monto; wI.getCell(r,6).value=fBolivia(item.fecha);
+            wI.getCell(r,7).value=item.resp==="MOVIMIENTO"?"X":"";
+            wI.getCell(r,8).value=item.resp==="RECIBO"?"X":"";
+            wI.getCell(r,9).value=parseInt(numB); wI.getCell(r,10).value=item.quien||"";
+        });
+        let rIF=listIngresos.length+5; if(!listIngresos.length) rIF=5;
+        wI.getCell(rIF,5).value={formula:`SUM(E5:E${rIF-1})`};
+        for(let r=5;r<=rIF;r++){
+            let last=(r===rIF);
+            for(let c=1;c<=10;c++){
+                let cell=wI.getCell(r,c);
+                cell.font=last?fTot:fD; cell.border=last?bM:bD;
+                cell.alignment={horizontal:c===5?"right":"center",vertical:"middle"};
+                cell.fill=last?{type:'pattern',pattern:'solid',fgColor:{argb:C.naranja}}:{type:'pattern',pattern:'solid',fgColor:{argb:"FFFFFFFF"}};
+                if(c===5) cell.numFmt='#,##0.00';
+            }
+        }
+        wI.columns=[{width:7},{width:20},{width:32},{width:15},{width:14},{width:14},{width:25},{width:15},{width:16},{width:25}];
+
+        // ── SALIDAS ───────────────────────────────────────────────────────────
+        const wS = wb.addWorksheet("SALIDAS", {views:[{showGridLines:true}]});
+        cfgH(wS);
+        wS.mergeCells("A1:S1"); wS.getCell("A1").value=`SALIDAS DE BALANCE ECONÓMICO NRO.${numB} - ${respB}`;
+        wS.mergeCells("A2:S2"); wS.getCell("A2").value=periodo;
+        for(let c=1;c<=19;c++){
+            wS.getCell(1,c).font=fT; wS.getCell(1,c).alignment=aC; wS.getCell(1,c).border=bD;
+            wS.getCell(1,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:C.amarillo}};
+            wS.getCell(2,c).font=fSC; wS.getCell(2,c).alignment=aC; wS.getCell(2,c).border=bD;
+        }
+        ["NRO.","RAZÓN SOCIAL","SERVICIO O COMPRA","ACLARACIONES","MONTO","FECHA","RESPALDO","","","","PROY/ADM","CATEGORIA","","","","","","NRO. DE BALANCE","RESPONSABLE"]
+            .forEach((h,i)=>{ if(h) wS.getCell(3,i+1).value=h; });
+        wS.getCell(4,7).value="DESCRIPCIÓN DE MOVIMIENTO"; wS.getCell(4,8).value="FACTURA";
+        wS.getCell(4,9).value="RECIBO EMPRESA"; wS.getCell(4,10).value="OTRO RESPALDO";
+        wS.getCell(4,12).value="JORNALES"; wS.getCell(4,13).value="CONTRATISTAS";
+        wS.getCell(4,14).value="PROFESIONALES"; wS.getCell(4,15).value="MATERIALES DE CONSTRUCCIÓN / ESCRITORIO";
+        wS.getCell(4,16).value="CAJAS CHICAS"; wS.getCell(4,17).value="LOGÍSTICA";
+        ["A3:A4","B3:B4","C3:C4","D3:D4","E3:E4","F3:F4","G3:J3","K3:K4","L3:Q3","R3:R4","S3:S4"].forEach(r=>wS.mergeCells(r));
+        wS.getRow(4).height=110;
+        for(let r=3;r<=4;r++) for(let c=1;c<=19;c++){
+            let cell=wS.getCell(r,c);
+            let fc=C.amarillo;
+            if(c>=7&&c<=10) fc="FFC5E0B4";
+            if(c>=12&&c<=17) fc="FFFCE4D6";
+            cell.font=fSC; cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:fc}};
+            cell.border=bD;
+            cell.alignment=(r===4&&((c>=7&&c<=10)||(c>=12&&c<=17)))?aV:aC;
+        }
+        listSalidas.forEach((item,idx)=>{
+            let r=idx+5;
+            let rsp=Array.isArray(item.respaldo)?item.respaldo:[item.respaldo];
+            wS.getCell(r,1).value=idx+1;
+            wS.getCell(r,2).value=item.razon.toUpperCase();
+            wS.getCell(r,3).value=item.servicio.toUpperCase();
+            wS.getCell(r,4).value=item.aclara.toUpperCase();
+            wS.getCell(r,5).value=item.monto;
+            wS.getCell(r,6).value=fBolivia(item.fecha);
+            wS.getCell(r,7).value=rsp.includes("DESCRIPCIÓN DE MOVIMIENTO")?"X":"";
+            wS.getCell(r,8).value=rsp.includes("FACTURA")?"X":"";
+            wS.getCell(r,9).value=rsp.includes("RECIBO EMPRESA")?"X":"";
+            wS.getCell(r,10).value=(rsp.includes("SCREEN")||rsp.includes("OTRO RESPALDO"))?"X":"";
+            wS.getCell(r,11).value=item.proyecto.toUpperCase();
+            wS.getCell(r,12).value=item.categoria==="JORNALES"?"X":"";
+            wS.getCell(r,13).value=item.categoria==="CONTRATISTAS"?"X":"";
+            wS.getCell(r,14).value=item.categoria==="PROFESIONALES"?"X":"";
+            wS.getCell(r,15).value=item.categoria==="MATERIALES DE CONSTRUCCIÓN / ESCRITORIO"?"X":"";
+            wS.getCell(r,16).value=item.categoria==="CAJAS CHICAS"?"X":"";
+            wS.getCell(r,17).value=item.categoria==="LOGÍSTICA"?"X":"";
+            wS.getCell(r,18).value=parseInt(numB);
+            wS.getCell(r,19).value=respB;
+        });
+        let rSF=listSalidas.length+5; if(!listSalidas.length) rSF=5;
+        wS.getCell(rSF,5).value={formula:`SUM(E5:E${rSF-1})`};
+        for(let r=5;r<=rSF;r++){
+            let last=(r===rSF);
+            for(let c=1;c<=19;c++){
+                let cell=wS.getCell(r,c);
+                cell.font=last?fTot:fD; cell.border=last?bM:bD;
+                cell.alignment={horizontal:c===5?"right":((c===2||c===3||c===4)&&!last?"left":"center"),vertical:"middle"};
+                cell.fill=last?{type:'pattern',pattern:'solid',fgColor:{argb:C.naranja}}:{type:'pattern',pattern:'solid',fgColor:{argb:"FFFFFFFF"}};
+                if(c===5) cell.numFmt='#,##0.00';
+            }
+        }
+        wS.columns=[{width:6},{width:18},{width:18},{width:25},{width:13},{width:13},
+            {width:8},{width:8},{width:8},{width:8},{width:14},{width:8},
+            {width:8},{width:8},{width:8},{width:8},{width:8},{width:10},{width:14}];
+
+        // ── HOJAS DE RESPALDO: una hoja carta vertical por cada adjunto ───────
+        let nResp = 0;
+        for (const item of listSalidas) {
+            if (!item.id) continue;
+            let adjs = [];
+            try { adjs = await obtenerAdjuntosDB(item.id); } catch(e) { adjs=[]; }
+            for (const adj of adjs) {
+                nResp++;
+                let nombre = `RESP_${nResp}`.substring(0,31);
+                const wResp = wb.addWorksheet(nombre, {views:[{showGridLines:false}]});
+                cfgV(wResp);
+
+                // Encabezado de la hoja de respaldo
+                wResp.getColumn('A').width = 90;
+                wResp.mergeCells("A1:A1");
+                wResp.getCell("A1").value = `RESPALDO N° ${nResp}  |  BALANCE ${numB}  |  ${respB}`;
+                wResp.getCell("A1").font = fT; wResp.getCell("A1").alignment = aC;
+                wResp.getRow(1).height = 22;
+
+                wResp.getCell("A2").value =
+                    `Fecha: ${fBolivia(item.fecha)}   •   Razón Social: ${item.razon}   •   Servicio: ${item.servicio}   •   Monto: Bs. ${item.monto.toFixed(2)}`;
+                wResp.getCell("A2").font = fSC; wResp.getCell("A2").alignment = aC;
+                wResp.getRow(2).height = 28;
+
+                // Imagen centrada en hoja carta (595 × 770 pt aprox en puntos Excel)
+                let dims = await imgDims(adj.dataUrl);
+                let maxW = 520, maxH = 680;
+                let escala = Math.min(1, maxW / dims.w, maxH / dims.h);
+                let finalW = dims.w * escala, finalH = dims.h * escala;
+
+                let ext = adj.dataUrl.indexOf('image/png') !== -1 ? 'png' : 'jpeg';
+                let b64 = adj.dataUrl.split(',')[1];
+                let imgId = wb.addImage({ base64: b64, extension: ext });
+                wResp.addImage(imgId, { tl: { col: 0.1, row: 3 }, ext: { width: finalW, height: finalH } });
+            }
+        }
+
+        const buf = await wb.xlsx.writeBuffer();
+        saveAs(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),
+            `Rendicion_Oficial_Ecogreen_Bal_${numB}.xlsx`);
+
+    } catch(e) { alert("❌ Error: " + e.message); }
+}
+
+// ─── Restablecer ─────────────────────────────────────────────────────────────
+async function borrarTodo() {
+    if (!confirm('⚠ ¿Estás seguro de resetear la aplicación?')) return;
+    localStorage.clear();
+    try { await limpiarAdjuntosDB(); } catch(e) {}
+    listIngresos=[]; listSalidas=[]; adjuntosTemp=[];
+    renderPreviews(); calcularYMostrar();
+}
+
+calcularYMostrar();
+
+// ─── Service Worker (hace que sea instalable y funcione offline) ──────────────
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () =>
+        navigator.serviceWorker.register('./service-worker.js').catch(console.error)
+    );
+}
+</script>
+</body>
+</html>
